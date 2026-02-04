@@ -7,6 +7,7 @@
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
@@ -16,6 +17,6 @@
 [dev]
   command = "npm start"
   port = 3000
-  targetPort = 3000
+  targetPort = 3001
   framework = "#custom"
   functionsPort = 9999

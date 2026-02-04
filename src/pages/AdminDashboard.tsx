@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { supabase, Contest, Profile } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import './AdminDashboard.css';
@@ -20,9 +22,31 @@ const AdminDashboard: React.FC = () => {
     end_date: '',
     status: 'upcoming' as 'upcoming' | 'active' | 'completed',
     jury_mode: false,
-    badge_gold: '',
-    badge_silver: '',
-    badge_copper: '',
+    position_1_name: 'Winner',
+    position_1_image: null as string | null,
+    position_2_name: 'Second Place',
+    position_2_image: null as string | null,
+    position_3_name: '',
+    position_3_image: null as string | null,
+    position_4_name: '',
+    position_4_image: null as string | null,
+  });
+
+  const [positionImages, setPositionImages] = useState<{
+    pos1?: File;
+    pos2?: File;
+    pos3?: File;
+    pos4?: File;
+  }>({});
+
+  // Submission form state
+  const [showSubmissionForm, setShowSubmissionForm] = useState(false);
+  const [selectedContestForSubmission, setSelectedContestForSubmission] = useState<string | null>(null);
+  const [submissionForm, setSubmissionForm] = useState({
+    name: '',
+    note: '',
+    file: null as File | null,
+    link: '',
   });
 
   useEffect(() => {
@@ -68,23 +92,46 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
 
     try {
+      // Upload position images if provided
+      const updatedForm = { ...contestForm };
+      
+      for (const [key, file] of Object.entries(positionImages)) {
+        if (file) {
+          const posNum = key.replace('pos', '');
+          const filePath = `positions/${Date.now()}_${file.name}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('submissions')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('submissions')
+            .getPublicUrl(filePath);
+
+          (updatedForm as any)[`position_${posNum}_image`] = publicUrl;
+        }
+      }
+
       if (editingContest) {
         const { error } = await supabase
           .from('contests')
-          .update(contestForm)
+          .update(updatedForm)
           .eq('id', editingContest.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('contests')
-          .insert([contestForm]);
+          .insert([updatedForm]);
 
         if (error) throw error;
       }
 
       setShowContestForm(false);
       setEditingContest(null);
+      setPositionImages({});
       resetContestForm();
       await loadContests();
     } catch (error: any) {
@@ -101,9 +148,14 @@ const AdminDashboard: React.FC = () => {
       end_date: '',
       status: 'upcoming',
       jury_mode: false,
-      badge_gold: '',
-      badge_silver: '',
-      badge_copper: '',
+      position_1_name: 'Winner',
+      position_1_image: null,
+      position_2_name: 'Second Place',
+      position_2_image: null,
+      position_3_name: '',
+      position_3_image: null,
+      position_4_name: '',
+      position_4_image: null,
     });
   };
 
@@ -116,9 +168,14 @@ const AdminDashboard: React.FC = () => {
       end_date: contest.end_date.split('T')[0],
       status: contest.status,
       jury_mode: contest.jury_mode,
-      badge_gold: contest.badge_gold || '',
-      badge_silver: contest.badge_silver || '',
-      badge_copper: contest.badge_copper || '',
+      position_1_name: contest.position_1_name,
+      position_1_image: contest.position_1_image,
+      position_2_name: contest.position_2_name,
+      position_2_image: contest.position_2_image,
+      position_3_name: contest.position_3_name || '',
+      position_3_image: contest.position_3_image,
+      position_4_name: contest.position_4_name || '',
+      position_4_image: contest.position_4_image,
     });
     setShowContestForm(true);
   };
@@ -135,6 +192,48 @@ const AdminDashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating user:', error);
       alert(error.message || 'Failed to update user');
+    }
+  };
+
+  const handleSubmissionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedContestForSubmission) return;
+
+    try {
+      let filePath = null;
+      let filename = null;
+
+      if (submissionForm.file) {
+        filename = submissionForm.file.name;
+        filePath = `${selectedContestForSubmission}/${Date.now()}_${filename}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('submissions')
+          .upload(filePath, submissionForm.file);
+
+        if (uploadError) throw uploadError;
+      }
+
+      const { error } = await supabase
+        .from('submissions')
+        .insert([{
+          contest_id: selectedContestForSubmission,
+          name: submissionForm.name,
+          note: submissionForm.note || null,
+          filename,
+          file_path: filePath,
+          link: submissionForm.link || null,
+        }]);
+
+      if (error) throw error;
+
+      setShowSubmissionForm(false);
+      setSelectedContestForSubmission(null);
+      setSubmissionForm({ name: '', note: '', file: null, link: '' });
+      alert('Submission added successfully!');
+    } catch (error: any) {
+      console.error('Error adding submission:', error);
+      alert(error.message || 'Failed to add submission');
     }
   };
 
@@ -194,15 +293,25 @@ const AdminDashboard: React.FC = () => {
                   required
                 />
 
-                <label className="label">Description (HTML)</label>
-                <textarea
-                  className="textarea"
+                <label className="label">Description</label>
+                <ReactQuill
+                  theme="snow"
                   value={contestForm.description}
-                  onChange={(e) =>
-                    setContestForm({ ...contestForm, description: e.target.value })
+                  onChange={(value) =>
+                    setContestForm({ ...contestForm, description: value })
                   }
-                  required
-                  rows={6}
+                  modules={{
+                    toolbar: [
+                      [{ 'header': [1, 2, 3, false] }],
+                      ['bold', 'italic', 'underline', 'strike'],
+                      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                      ['blockquote', 'code-block'],
+                      ['link'],
+                      ['clean']
+                    ]
+                  }}
+                  placeholder="Enter contest description..."
+                  style={{ marginBottom: '16px' }}
                 />
 
                 <div className="form-row">
@@ -259,6 +368,106 @@ const AdminDashboard: React.FC = () => {
                   <span>Enable Jury Mode</span>
                 </label>
 
+                <h3 style={{ marginTop: '24px', marginBottom: '16px' }}>Winner Positions</h3>
+
+                <div className="position-group">
+                  <label className="label">Position 1 Name (Required)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={contestForm.position_1_name}
+                    onChange={(e) =>
+                      setContestForm({ ...contestForm, position_1_name: e.target.value })
+                    }
+                    required
+                  />
+                  <label className="label">Position 1 Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPositionImages({ ...positionImages, pos1: file });
+                    }}
+                  />
+                  {contestForm.position_1_image && (
+                    <img src={contestForm.position_1_image} alt="Position 1" style={{ maxWidth: '100px', marginTop: '8px' }} />
+                  )}
+                </div>
+
+                <div className="position-group">
+                  <label className="label">Position 2 Name (Required)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={contestForm.position_2_name}
+                    onChange={(e) =>
+                      setContestForm({ ...contestForm, position_2_name: e.target.value })
+                    }
+                    required
+                  />
+                  <label className="label">Position 2 Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPositionImages({ ...positionImages, pos2: file });
+                    }}
+                  />
+                  {contestForm.position_2_image && (
+                    <img src={contestForm.position_2_image} alt="Position 2" style={{ maxWidth: '100px', marginTop: '8px' }} />
+                  )}
+                </div>
+
+                <div className="position-group">
+                  <label className="label">Position 3 Name (Optional)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={contestForm.position_3_name}
+                    onChange={(e) =>
+                      setContestForm({ ...contestForm, position_3_name: e.target.value })
+                    }
+                  />
+                  <label className="label">Position 3 Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPositionImages({ ...positionImages, pos3: file });
+                    }}
+                  />
+                  {contestForm.position_3_image && (
+                    <img src={contestForm.position_3_image} alt="Position 3" style={{ maxWidth: '100px', marginTop: '8px' }} />
+                  )}
+                </div>
+
+                <div className="position-group">
+                  <label className="label">Position 4 Name (Optional)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={contestForm.position_4_name}
+                    onChange={(e) =>
+                      setContestForm({ ...contestForm, position_4_name: e.target.value })
+                    }
+                  />
+                  <label className="label">Position 4 Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setPositionImages({ ...positionImages, pos4: file });
+                    }}
+                  />
+                  {contestForm.position_4_image && (
+                    <img src={contestForm.position_4_image} alt="Position 4" style={{ maxWidth: '100px', marginTop: '8px' }} />
+                  )}
+                </div>
+
                 <div className="form-actions">
                   <button type="submit" className="btn btn-primary">
                     {editingContest ? 'Update' : 'Create'} Contest
@@ -269,6 +478,7 @@ const AdminDashboard: React.FC = () => {
                     onClick={() => {
                       setShowContestForm(false);
                       setEditingContest(null);
+                      setPositionImages({});
                       resetContestForm();
                     }}
                   >
@@ -298,11 +508,97 @@ const AdminDashboard: React.FC = () => {
                     >
                       Edit
                     </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => {
+                        setSelectedContestForSubmission(contest.id);
+                        setShowSubmissionForm(true);
+                      }}
+                    >
+                      Add Submission
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
+          {showSubmissionForm && (
+            <div className="card">
+              <form onSubmit={handleSubmissionSubmit} className="contest-form">
+                <h3>Add Submission</h3>
+
+                <label className="label">Participant Name</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={submissionForm.name}
+                  onChange={(e) =>
+                    setSubmissionForm({ ...submissionForm, name: e.target.value })
+                  }
+                  required
+                  placeholder="Enter participant name"
+                />
+
+                <label className="label">Note (optional)</label>
+                <textarea
+                  className="textarea"
+                  value={submissionForm.note}
+                  onChange={(e) =>
+                    setSubmissionForm({ ...submissionForm, note: e.target.value })
+                  }
+                  placeholder="Add a note about this submission"
+                  rows={3}
+                />
+
+                <label className="label">Upload ZIP file</label>
+                <input
+                  type="file"
+                  accept=".zip"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setSubmissionForm({ ...submissionForm, file, link: file ? '' : submissionForm.link });
+                  }}
+                />
+
+                <div style={{ textAlign: 'center', margin: '16px 0', color: '#666' }}>
+                  - OR -
+                </div>
+
+                <label className="label">External Link</label>
+                <input
+                  type="url"
+                  className="input"
+                  value={submissionForm.link}
+                  onChange={(e) =>
+                    setSubmissionForm({ ...submissionForm, link: e.target.value, file: e.target.value ? null : submissionForm.file })
+                  }
+                  placeholder="https://example.com/submission"
+                />
+
+                <div className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={!submissionForm.file && !submissionForm.link}
+                  >
+                    Add Submission
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowSubmissionForm(false);
+                      setSelectedContestForSubmission(null);
+                      setSubmissionForm({ name: '', note: '', file: null, link: '' });
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </>
       )}
 

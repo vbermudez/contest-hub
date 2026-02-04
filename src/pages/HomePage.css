@@ -4,10 +4,12 @@
   color: white;
 }
 
-.hero h1 {
-  font-size: 3rem;
-  margin: 0 0 16px;
-  letter-spacing: -1px;
+.hero-logo {
+  max-width: 500px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 16px;
+  display: block;
 }
 
 .hero p {
@@ -21,10 +23,15 @@
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s;
+  background: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 26px;
+  padding: 24px;
 }
 
 .contest-card:hover {
   transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .contest-header {
@@ -48,8 +55,8 @@
 }
 
 @media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2rem;
+  .hero-logo {
+    max-width: 300px;
   }
 
   .hero p {

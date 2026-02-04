@@ -51,7 +51,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="container">
       <div className="hero">
-        <h1>Contest Hub</h1>
+        <img src="/images/big-logo.png" alt="Contest Hub" className="hero-logo" />
         <p>Where dignity goes to die, and engineering titles are born.</p>
       </div>
 

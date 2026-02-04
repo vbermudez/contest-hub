@@ -21,6 +21,14 @@
   color: #666;
 }
 
+.challenge-description {
+  background: rgba(102, 126, 234, 0.05);
+  border-left: 4px solid #667eea;
+  padding: 24px;
+  border-radius: 12px;
+  margin-top: 24px;
+}
+
 .winners-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -34,6 +42,21 @@
   border-radius: 12px;
   text-align: center;
   border: 2px solid #fbbf24;
+}
+
+.winner-badge {
+  max-width: 120px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 12px;
+  display: block;
+}
+
+.winner-position {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 8px;
 }
 
 .winner-rank {
@@ -97,6 +120,23 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  align-items: flex-end;
+}
+
+.position-selector {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+}
+
+.position-selector .label {
+  margin-bottom: 4px;
+}
+
+.position-selector .select {
+  margin-bottom: 0;
+  padding: 8px;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {

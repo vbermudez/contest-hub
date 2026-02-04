@@ -144,8 +144,49 @@ const ContestPage: React.FC = () => {
     }
   };
 
+  const handleSetWinner = async (submissionId: string, rank: number) => {
+    if (!session) {
+      alert('You must be logged in as an admin to set winners');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/set-winner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ 
+          contestId: id,
+          submissionId,
+          rank: rank || null // Send null if rank is 0 (None selected)
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text);
+      }
+
+      await loadContest();
+    } catch (error: any) {
+      alert(error.message || 'Failed to set winner');
+    }
+  };
+
   const downloadSubmission = async (submission: Submission) => {
     try {
+      if (submission.link) {
+        window.open(submission.link, '_blank');
+        return;
+      }
+
+      if (!submission.file_path) {
+        alert('No file or link available');
+        return;
+      }
+
       const { data, error } = await supabase.storage
         .from('submissions')
         .download(submission.file_path);
@@ -155,7 +196,7 @@ const ContestPage: React.FC = () => {
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = submission.filename;
+      a.download = submission.filename || 'download.zip';
       a.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -194,32 +235,45 @@ const ContestPage: React.FC = () => {
           <span>⏳ {formatDate(contest.start_date)} → {formatDate(contest.end_date)}</span>
           {contest.jury_mode && <span className="badge">👨‍⚖️ Jury Mode</span>}
         </div>
-        <div
-          className="rich-text"
-          dangerouslySetInnerHTML={{ __html: contest.description }}
-        />
+        <div className="challenge-description">
+          <div
+            className="rich-text"
+            dangerouslySetInnerHTML={{ __html: contest.description }}
+          />
+        </div>
       </div>
 
       {winners.length > 0 && (
         <div className="card">
           <h2>🏆 Winners</h2>
           <div className="winners-grid">
-            {winners.map((winner) => (
-              <div key={winner.id} className="winner-card">
-                <div className="winner-rank">
-                  {winner.winner_rank === 1 ? '🥇' :
-                   winner.winner_rank === 2 ? '🥈' : '🥉'}
+            {winners.map((winner) => {
+              const positionName = winner.winner_rank === 1 ? contest.position_1_name :
+                                  winner.winner_rank === 2 ? contest.position_2_name :
+                                  winner.winner_rank === 3 ? contest.position_3_name :
+                                  contest.position_4_name || 'Winner';
+              const positionImage = winner.winner_rank === 1 ? contest.position_1_image :
+                                   winner.winner_rank === 2 ? contest.position_2_image :
+                                   winner.winner_rank === 3 ? contest.position_3_image :
+                                   contest.position_4_image;
+              
+              return (
+                <div key={winner.id} className="winner-card">
+                  {positionImage && (
+                    <img src={positionImage} alt={positionName || 'Winner'} className="winner-badge" />
+                  )}
+                  <div className="winner-position">{positionName}</div>
+                  <h3>{winner.name}</h3>
+                  {winner.note && <p>{winner.note}</p>}
+                  <button
+                    onClick={() => downloadSubmission(winner)}
+                    className="btn btn-secondary"
+                  >
+                    {winner.link ? 'View Link' : 'Download'}
+                  </button>
                 </div>
-                <h3>{winner.name}</h3>
-                {winner.note && <p>{winner.note}</p>}
-                <button
-                  onClick={() => downloadSubmission(winner)}
-                  className="btn btn-secondary"
-                >
-                  Download
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -290,14 +344,52 @@ const ContestPage: React.FC = () => {
                     onClick={() => downloadSubmission(sub)}
                     className="btn btn-secondary"
                   >
-                    Download
+                    {sub.link ? 'View Link' : 'Download'}
                   </button>
-                  <button
-                    onClick={() => handleVote(sub.id)}
-                    className="btn btn-primary"
-                  >
-                    Vote
-                  </button>
+                  {contest.jury_mode ? (
+                    // Jury mode: Only admins can set positions
+                    isAdmin ? (
+                      <div className="position-selector">
+                        <label className="label" style={{ fontSize: '0.85rem', marginBottom: '4px' }}>Position:</label>
+                        <select
+                          className="select"
+                          value={sub.winner_rank || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value) {
+                              handleSetWinner(sub.id, parseInt(value));
+                            } else {
+                              // Clear winner status when "None" is selected
+                              handleSetWinner(sub.id, 0);
+                            }
+                          }}
+                          style={{ minWidth: '140px' }}
+                        >
+                          <option value="">None</option>
+                          <option value="1">{contest.position_1_name}</option>
+                          <option value="2">{contest.position_2_name}</option>
+                          {contest.position_3_name && (
+                            <option value="3">{contest.position_3_name}</option>
+                          )}
+                          {contest.position_4_name && (
+                            <option value="4">{contest.position_4_name}</option>
+                          )}
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="jury-mode-notice" style={{ fontSize: '0.85rem', color: '#666' }}>
+                        Admin only
+                      </div>
+                    )
+                  ) : (
+                    // Normal mode: Everyone can vote
+                    <button
+                      onClick={() => handleVote(sub.id)}
+                      className="btn btn-primary"
+                    >
+                      Vote
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

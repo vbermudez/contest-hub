@@ -56,6 +56,27 @@
   margin: 0 0 20px;
 }
 
+.contest-form .quill {
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.contest-form .ql-toolbar {
+  border-radius: 8px 8px 0 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.contest-form .ql-container {
+  border-radius: 0 0 8px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: none;
+  min-height: 200px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -84,6 +105,17 @@
   display: flex;
   gap: 12px;
   margin-top: 24px;
+}
+
+.position-group {
+  background: rgba(0, 0, 0, 0.02);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.position-group input[type="file"] {
+  margin-bottom: 8px;
 }
 
 .contests-table,
