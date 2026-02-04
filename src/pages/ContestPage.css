@@ -1,0 +1,114 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+.back-link:hover {
+  opacity: 0.8;
+}
+
+.contest-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.winners-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.winner-card {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #fbbf24;
+}
+
+.winner-rank {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.winner-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.winner-card p {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin: 0 0 16px;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.submission-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.submission-info {
+  flex: 1;
+}
+
+.submission-info h3 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.submission-note {
+  margin: 0 0 8px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.submission-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: #999;
+  flex-wrap: wrap;
+}
+
+.submission-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .submission-item {
+    flex-direction: column;
+  }
+
+  .submission-actions {
+    width: 100%;
+  }
+
+  .submission-actions button {
+    flex: 1;
+  }
+}
