@@ -24,7 +24,7 @@
   color: inherit;
   transition: transform 0.2s;
   background: white;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 1.0);
   border-radius: 26px;
   padding: 24px;
 }
