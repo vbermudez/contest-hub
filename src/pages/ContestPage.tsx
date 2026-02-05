@@ -82,6 +82,16 @@ const ContestPage: React.FC = () => {
     e.preventDefault();
     if (!file || !id) return;
 
+    if (!session) {
+      setUploadError('You must be logged in to submit entries');
+      return;
+    }
+
+    if (contest?.status === 'completed') {
+      setUploadError('This contest has ended and is no longer accepting submissions');
+      return;
+    }
+
     setUploading(true);
     setUploadError('');
 
@@ -119,6 +129,11 @@ const ContestPage: React.FC = () => {
   };
 
   const handleVote = async (submissionId: string) => {
+    if (!session) {
+      alert('You must be logged in to vote');
+      return;
+    }
+
     try {
       // Generate a simple fingerprint
       const fingerprint = localStorage.getItem('user_fingerprint') || Math.random().toString(36);
@@ -278,9 +293,15 @@ const ContestPage: React.FC = () => {
         </div>
       )}
 
-      <div className="card">
-        <h2>Submit Entry</h2>
-        <form onSubmit={handleUpload}>
+      {contest.status !== 'completed' && (
+        <div className="card">
+          <h2>Submit Entry</h2>
+          {!session && (
+            <div className="error" style={{ marginBottom: '16px' }}>
+              Please log in to submit an entry
+            </div>
+          )}
+          <form onSubmit={handleUpload}>
           <label className="label">Your Name</label>
           <input
             type="text"
@@ -319,6 +340,7 @@ const ContestPage: React.FC = () => {
           </button>
         </form>
       </div>
+      )}
 
       <div className="card">
         <h2>Submissions ({submissions.length})</h2>

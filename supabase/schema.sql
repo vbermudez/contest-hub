@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.submissions (
   admin_score INTEGER CHECK (admin_score >= 1 AND admin_score <= 10),
   jury_score INTEGER,
   is_winner BOOLEAN DEFAULT false,
-  winner_rank INTEGER CHECK (winner_rank IN (1, 2, 3)),
+  winner_rank INTEGER CHECK (winner_rank IN (1, 2, 3, 4)),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -196,7 +196,7 @@ CREATE TRIGGER on_auth_user_created
 
 -- Storage bucket for submissions
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('submissions', 'submissions', false)
+VALUES ('submissions', 'submissions', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies
