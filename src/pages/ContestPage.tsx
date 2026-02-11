@@ -15,6 +15,7 @@ const ContestPage: React.FC = () => {
   // Upload form state
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
+  const [link, setLink] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -80,7 +81,12 @@ const ContestPage: React.FC = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !id) return;
+    if (!id) return;
+
+    if (!file && !link.trim()) {
+      setUploadError('Please provide either a file or a link');
+      return;
+    }
 
     if (!session) {
       setUploadError('You must be logged in to submit entries');
@@ -96,13 +102,19 @@ const ContestPage: React.FC = () => {
     setUploadError('');
 
     try {
-      const filePath = `${id}/${Date.now()}_${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('submissions')
-        .upload(filePath, file);
+      let filePath = null;
+      let filename = null;
 
-      if (uploadError) throw uploadError;
+      if (file) {
+        filePath = `${id}/${Date.now()}_${file.name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('submissions')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        filename = file.name;
+      }
 
       const { error: insertError } = await supabase
         .from('submissions')
@@ -110,7 +122,8 @@ const ContestPage: React.FC = () => {
           contest_id: id,
           name: name.trim(),
           note: note.trim() || null,
-          filename: file.name,
+          link: link.trim() || null,
+          filename: filename,
           file_path: filePath,
         }]);
 
@@ -118,6 +131,7 @@ const ContestPage: React.FC = () => {
 
       setName('');
       setNote('');
+      setLink('');
       setFile(null);
       await loadContest();
     } catch (error: any) {
@@ -320,12 +334,20 @@ const ContestPage: React.FC = () => {
             placeholder="Add a note about your submission"
           />
 
-          <label className="label">Upload ZIP file</label>
+          <label className="label">Link (optional)</label>
+          <input
+            type="url"
+            className="input"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="Or provide a link to your submission"
+          />
+
+          <label className="label">Upload ZIP file (optional if link provided)</label>
           <input
             type="file"
             accept=".zip"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            required
           />
 
           {uploadError && <div className="error">{uploadError}</div>}
@@ -333,7 +355,7 @@ const ContestPage: React.FC = () => {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={uploading || !file}
+            disabled={uploading || (!file && !link.trim())}
             style={{ marginTop: '16px' }}
           >
             {uploading ? 'Uploading...' : 'Submit'}
